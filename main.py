@@ -1,6 +1,5 @@
-text = "d4:dictd3:1234:test3:4565:thinge4:listl11:list-item-111:list-item-2e6:numberi123456e6:string5:valuee"
-
-
+text = open("Cowboy Bebop Artbooks.torrent", "rb").read()
+text = text.decode("utf-8", errors="ignore")
 def Bdecode(input_data):
     data = list(input_data)
 
@@ -11,10 +10,13 @@ def Bdecode(input_data):
             length = ""
             while element.isnumeric():
                 length += str(element)
-                element = data.pop(0)
+                if len(data) > 0:
+                    element = data.pop(0)
             string = ""
             for i in range(int(length)):
-                string += data.pop(0)
+                if len(data)>0:
+                    string += data.pop(0)
+
 
             return string, data
 
@@ -30,6 +32,8 @@ def Bdecode(input_data):
             lista = []
             element = data.pop(0)
             while element != "e":
+                if len(data) == 0:
+                    return lista, data
                 data.insert(0, element)
                 value, data = Bdecode(data)
                 lista.append(value)
@@ -40,12 +44,16 @@ def Bdecode(input_data):
             dictionary = {}
             element = data.pop(0)
             while element != "e":
+                if len(data) == 0:
+                    return dictionary, data
                 data.insert(0, element)
                 key, data = Bdecode(data)
                 value, data = Bdecode(data)
                 dictionary[key] = value
-                element = data.pop(0)
+                if len(data) > 0:
+                    element = data.pop(0)
             return dictionary, data
 
-print(Bdecode(text))
-print("siema")
+file_contents = Bdecode(text)[0]
+
+print(file_contents, "\n", type(file_contents))
