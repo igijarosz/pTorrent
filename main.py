@@ -1,5 +1,15 @@
-text = open("Cowboy Bebop Artbooks.torrent", "rb").read()
+import urllib.parse
+import hashlib
+
+text = open("Cowboy Bebop - Movie.torrent", "rb").read()
+
+info_hash_start = text.find(bytes("infod", "utf-8")) + 4
+info_d_end = text[info_hash_start:-1]
+info_hash = hashlib.sha1(info_d_end).digest()
+
 text = text.decode("utf-8", errors="ignore")
+
+
 def Bdecode(input_data):
     data = list(input_data)
 
@@ -14,9 +24,8 @@ def Bdecode(input_data):
                     element = data.pop(0)
             string = ""
             for i in range(int(length)):
-                if len(data)>0:
+                if len(data) > 0:
                     string += data.pop(0)
-
 
             return string, data
 
@@ -54,6 +63,24 @@ def Bdecode(input_data):
                     element = data.pop(0)
             return dictionary, data
 
+
 file_contents = Bdecode(text)[0]
 
-print(file_contents, "\n", type(file_contents))
+# file_tuple = (file_contents["announce"], file_contents["announce-list"], file_contents["info"]["piece length"],
+# file_contents["info"]["pieces"], file_contents["info"]["name"], file_contents["info"]["length"])
+
+announce = file_contents["announce"]
+announce_list = file_contents["announce-list"]
+piece_length = file_contents["info"]["piece length"]
+pieces = file_contents["info"]["pieces"]
+name = file_contents["info"]["name"]
+length = file_contents["info"]["length"]
+
+
+print(urllib.parse.quote_plus(info_hash))
+
+client_id = f"-pT1000-123456789123"
+
+
+
+
