@@ -1,86 +1,56 @@
+import bencoder
 import urllib.parse
+import urllib.request
 import hashlib
+import random
+import struct
 
+# generate random client id
+client_id = f"-pT1000-{random.randint(100000000000, 999999999999)}"
+
+# open the file
 text = open("Cowboy Bebop - Movie.torrent", "rb").read()
 
-info_hash_start = text.find(bytes("infod", "utf-8")) + 4
-info_d_end = text[info_hash_start:-1]
-info_hash = hashlib.sha1(info_d_end).digest()
+# get info hash
+info_dict_start = text.find(bytes("infod", "utf-8")) + 4
+info_dict = text[info_dict_start:-1]
+info_hash = hashlib.sha1(info_dict).digest()
+info_hash_parsed = urllib.parse.quote_plus(info_hash)
 
-text = text.decode("utf-8", errors="ignore")
+# decode the file
+file_contents = bencoder.Bdecode(text.decode("utf-8", errors="ignore"))[0]
 
-
-def Bdecode(input_data):
-    data = list(input_data)
-
-    while len(data) > 0:
-
-        element = data.pop(0)
-        if element.isnumeric():
-            length = ""
-            while element.isnumeric():
-                length += str(element)
-                if len(data) > 0:
-                    element = data.pop(0)
-            string = ""
-            for i in range(int(length)):
-                if len(data) > 0:
-                    string += data.pop(0)
-
-            return string, data
-
-        if element == "i":
-            integer = ""
-            element = data.pop(0)
-            while element.isnumeric() or element == "-":
-                integer += element
-                element = data.pop(0)
-            return integer, data
-
-        if element == "l":
-            lista = []
-            element = data.pop(0)
-            while element != "e":
-                if len(data) == 0:
-                    return lista, data
-                data.insert(0, element)
-                value, data = Bdecode(data)
-                lista.append(value)
-                element = data.pop(0)
-            return lista, data
-
-        if element == "d":
-            dictionary = {}
-            element = data.pop(0)
-            while element != "e":
-                if len(data) == 0:
-                    return dictionary, data
-                data.insert(0, element)
-                key, data = Bdecode(data)
-                value, data = Bdecode(data)
-                dictionary[key] = value
-                if len(data) > 0:
-                    element = data.pop(0)
-            return dictionary, data
-
-
-file_contents = Bdecode(text)[0]
-
-# file_tuple = (file_contents["announce"], file_contents["announce-list"], file_contents["info"]["piece length"],
-# file_contents["info"]["pieces"], file_contents["info"]["name"], file_contents["info"]["length"])
-
+# assemble the url
 announce = file_contents["announce"]
+port = "6881"
+length = file_contents["info"]["length"]
+tracker_url = f"{announce}?info_hash={info_hash_parsed}&peer_id={client_id}&port={port}&left={length}"
+
+# connect to the tracker
+
+tracker_response_loc = urllib.request.urlretrieve(tracker_url,"Temp/response")[0]
+tracker_response = open(tracker_response_loc, "rb").read()
+urllib.request.urlcleanup()
+
 announce_list = file_contents["announce-list"]
 piece_length = file_contents["info"]["piece length"]
 pieces = file_contents["info"]["pieces"]
 name = file_contents["info"]["name"]
-length = file_contents["info"]["length"]
 
+#FIXME: a really unsafe way to find where the peers start
+peers_start = tracker_response.find(bytes("peers", "utf-8"))+9
+peers_end = tracker_response.rfind(bytes("peers", "utf-8"))-2
+peers = tracker_response[peers_start:peers_end]
 
-print(urllib.parse.quote_plus(info_hash))
+print(peers)
 
-client_id = f"-pT1000-123456789123"
+for j in range(0, len(peers)):
+    peer_ip = ""
+    peer_port = 1
+    for i in range(0, 6):
+        if i < 4:
+            peer_ip += str(int.from_bytes(struct.unpack("!c", peers[j+i:j+i+1:1])[0],"big")) + "."
+        else:
+            peer_port *= int.from_bytes(struct.unpack("!c", peers[j+i:j+i+1:1])[0],"big")
 
-
-
-
+    print(f"{peer_ip}:{peer_port}")
