@@ -1,3 +1,4 @@
+import socket
 import bencoder
 import urllib.parse
 import urllib.request
@@ -27,8 +28,7 @@ length = file_contents["info"]["length"]
 tracker_url = f"{announce}?info_hash={info_hash_parsed}&peer_id={client_id}&port={port}&left={length}"
 
 # connect to the tracker
-
-tracker_response_loc = urllib.request.urlretrieve(tracker_url,"Temp/response")[0]
+tracker_response_loc = urllib.request.urlretrieve(tracker_url, "Temp/response")[0]
 tracker_response = open(tracker_response_loc, "rb").read()
 urllib.request.urlcleanup()
 
@@ -37,20 +37,54 @@ piece_length = file_contents["info"]["piece length"]
 pieces = file_contents["info"]["pieces"]
 name = file_contents["info"]["name"]
 
-#FIXME: a really unsafe way to find where the peers start
-peers_start = tracker_response.find(bytes("peers", "utf-8"))+9
-peers_end = tracker_response.rfind(bytes("peers", "utf-8"))-2
-peers = tracker_response[peers_start:peers_end]
+# FIXME: a really unsafe way to find where the peers start
+peers_start = tracker_response.find(bytes("peers", "utf-8")) + 9
+peers_end = tracker_response.rfind(bytes("peers", "utf-8")) - 2
+peers_bytes = tracker_response[peers_start:peers_end]
 
-print(peers)
+# get ip of the peers
+peers_list = []
 
-for j in range(0, len(peers)):
+for j in range(0, len(peers_bytes)):
+
     peer_ip = ""
-    peer_port = 1
+    peer_port = 0
     for i in range(0, 6):
-        if i < 4:
-            peer_ip += str(int.from_bytes(struct.unpack("!c", peers[j+i:j+i+1:1])[0],"big")) + "."
-        else:
-            peer_port *= int.from_bytes(struct.unpack("!c", peers[j+i:j+i+1:1])[0],"big")
+        try:
+            if i < 4:
+                peer_ip += str(int.from_bytes(struct.unpack("!c", peers_bytes[j + i:j + i + 1:1])[0], "big")) + "."
+            if i == 4:
+                peer_port += int.from_bytes(struct.unpack("!c", peers_bytes[j + i:j + i + 1:1])[0], "big") * 256
+            if i == 5:
+                peer_port += int.from_bytes(struct.unpack("!c", peers_bytes[j + i:j + i + 1:1])[0], "big")
+        except:
+            continue
 
-    print(f"{peer_ip}:{peer_port}")
+    peers_list.append((peer_ip[:-1], peer_port))
+    print(peers_list)
+
+# create the request message
+request = b'\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00'
+request += info_hash
+request += bytearray(client_id, "utf-8")
+print(request)
+
+# socket connection
+print(len(peers_list))
+for i in range(0, len(peers_list)):
+    try:
+        peer_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        peer_connection.settimeout(1)
+        print(f"\nConnecting to {(peers_list[i][0], peers_list[i][1])}...")
+        peer_connection.connect((peers_list[i][0], peers_list[i][1]))
+        print("Connected")
+        peer_connection.sendall(request)
+        buffer = peer_connection.recv(1048)
+        print("Response:\n", buffer)
+        peer_connection.shutdown(1)
+        peer_connection.close()
+        print("Connection closed")
+    except Exception as error:
+        print(error)
+        peer_connection.close()
+        pass
