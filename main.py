@@ -1,5 +1,7 @@
 import socket
 import bencoder
+import peer_connection
+
 import urllib.parse
 import urllib.request
 import hashlib
@@ -13,8 +15,7 @@ client_id = f"-pT1000-{random.randint(100000000000, 999999999999)}"
 text = open("Cowboy Bebop - Movie.torrent", "rb").read()
 
 # get info hash
-info_dict_start = text.find(bytes("infod", "utf-8")) + 4
-info_dict = text[info_dict_start:-1]
+info_dict = text[text.find(bytes("infod", "utf-8")) + 4:-1]
 info_hash = hashlib.sha1(info_dict).digest()
 info_hash_parsed = urllib.parse.quote_plus(info_hash)
 
@@ -43,8 +44,7 @@ peers_end = tracker_response.rfind(bytes("peers", "utf-8")) - 2
 peers_bytes = tracker_response[peers_start:peers_end]
 
 # get ip of the peers
-peers_list = []
-
+ip_list = []
 for j in range(0, len(peers_bytes)):
 
     peer_ip = ""
@@ -60,31 +60,15 @@ for j in range(0, len(peers_bytes)):
         except:
             continue
 
-    peers_list.append((peer_ip[:-1], peer_port))
-    print(peers_list)
+    ip_list.append((peer_ip[:-1], peer_port))
+print(ip_list)
 
 # create the request message
-request = b'\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00'
-request += info_hash
-request += bytearray(client_id, "utf-8")
-print(request)
+request = b'\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00' + info_hash + bytearray(client_id, "utf-8")
 
 # socket connection
-print(len(peers_list))
-for i in range(0, len(peers_list)):
-    try:
-        peer_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        peer_connection.settimeout(1)
-        print(f"\nConnecting to {(peers_list[i][0], peers_list[i][1])}...")
-        peer_connection.connect((peers_list[i][0], peers_list[i][1]))
-        print("Connected")
-        peer_connection.sendall(request)
-        buffer = peer_connection.recv(1048)
-        print("Response:\n", buffer)
-        peer_connection.shutdown(1)
-        peer_connection.close()
-        print("Connection closed")
-    except Exception as error:
-        print(error)
-        peer_connection.close()
-        pass
+peer_connection.connect(ip_list, request)
+
+for i in range(0, len(peer_connection.peer_list)):
+    print(peer_connection.peer_list[i].id, peer_connection.peer_list[i].ip)
+    peer_connection.peer_list[i].interested()
