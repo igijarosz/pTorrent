@@ -1,5 +1,6 @@
 import tracker
 import tparser
+import downloader
 
 torrent = tparser.open_file("Cowboy Bebop - Movie.torrent")
 
