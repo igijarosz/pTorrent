@@ -3,12 +3,7 @@ import urllib.parse
 import secrets
 import io
 import tparser
-
-# id naszego klienta
-client_id = bytearray()
-client_id.extend(bytes('-pT0001-', "UTF-8"))
-client_id.extend(secrets.token_bytes(12))
-
+import idgen
 
 # funkcja pobierająca peery z dict torrent zwracająca odpowiedź z ip peerów na callbacku
 def get_peers(torrent, callback):
@@ -74,7 +69,7 @@ def create_announce_request(id, torrent, port):
     buffer.extend(0x1.to_bytes(4, "big"))                                   # action
     buffer.extend(secrets.token_bytes(4))                                   # transaction id
     buffer.extend(tparser.info_hash(torrent))                               # info hash
-    buffer.extend(client_id)                                                # client id
+    buffer.extend(idgen.client_id)                                                # client id
     buffer.extend(0x0.to_bytes(8, "big"))                                   # downloaded
     buffer.extend(tparser.size(torrent))                                    # left
     buffer.extend(0x0.to_bytes(8, "big"))                                   # uploaded
