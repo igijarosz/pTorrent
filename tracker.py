@@ -69,7 +69,7 @@ def create_announce_request(id, torrent, port):
     buffer.extend(0x1.to_bytes(4, "big"))                                   # action
     buffer.extend(secrets.token_bytes(4))                                   # transaction id
     buffer.extend(tparser.info_hash(torrent))                               # info hash
-    buffer.extend(idgen.client_id)                                                # client id
+    buffer.extend(idgen.client_id)                                          # client id
     buffer.extend(0x0.to_bytes(8, "big"))                                   # downloaded
     buffer.extend(tparser.size(torrent))                                    # left
     buffer.extend(0x0.to_bytes(8, "big"))                                   # uploaded
