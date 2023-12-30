@@ -2,6 +2,6 @@ import tracker
 import tparser
 import downloader
 
-torrent = tparser.open_file("Cowboy Bebop - Movie.torrent")
+torrent = tparser.open_file("debian 12.4.0 edu.torrent")
 
-tracker.get_peers(torrent, lambda peers: downloader.start_async_download(peers))
+tracker.get_peers(torrent, lambda peers: downloader.download_from_peers(torrent, peers))

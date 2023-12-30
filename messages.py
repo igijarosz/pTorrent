@@ -5,7 +5,7 @@ import idgen
 def create_handshake(torrent):
     buffer = bytearray()
 
-    buffer.extend(0x19.to_bytes(1, "big"))
+    buffer.extend(0x13.to_bytes(1, "big"))
     buffer.extend("BitTorrent protocol".encode("utf-8"))
     buffer.extend(0x0.to_bytes(8, "big"))
     buffer.extend(tparser.info_hash(torrent))
