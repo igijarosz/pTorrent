@@ -53,9 +53,8 @@ def get_peers_udp(url, torrent, callback):
 def get_peers_http(url, torrent, callback):
     try:
         tracker_url = f"http://{url.hostname}:{url.port}/announce?info_hash={urllib.parse.quote_plus(tparser.info_hash(torrent))}&peer_id={urllib.parse.quote_plus(idgen.client_id)}&port=6881&left={urllib.parse.quote_plus(tparser.size(torrent))}"
-        tracker_response_loc = urllib.request.urlretrieve(tracker_url, "Temp/response")[0]
-        tracker_response = open(tracker_response_loc, "rb").read()
-        urllib.request.urlcleanup()
+        tracker_response = urllib.request.urlopen(tracker_url)
+        tracker_response = tracker_response.read().decode("utf-8")
 
         peers_list = bencodepy.decode(tracker_response)[b'peers']
         peers_list = [(str(x[b'ip'], "utf-8"), x[b'port']) for x in peers_list]
