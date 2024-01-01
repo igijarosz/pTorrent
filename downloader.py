@@ -9,12 +9,13 @@ import que
 def download_from_peers(torrent, peers):
     pieces = piece.Piece(torrent)
     file = open("cos", "wb")
-    for peer in peers:
-        try:
-            download(torrent, peer, pieces, file)
-        except Exception as error:
-            print(error)
-            pass
+    while True:
+        for peer in peers:
+            try:
+                download(torrent, peer, pieces, file)
+            except Exception as error:
+                print(error)
+                pass
 
 
 def download(torrent, peer, pieces, file):
@@ -31,7 +32,7 @@ def download(torrent, peer, pieces, file):
         data = sock.recv(1024)
         if not data:
             break
-        print(data)
+
         msg_len = 0
 
         message_buffer.extend(data)
@@ -75,7 +76,7 @@ def handle_choke(sock):
 
 
 def handle_unchoke(sock, pieces, queue):
-    queue["choked"] = False
+    queue.choked = False
     request_piece(sock, pieces, queue)
 
 
@@ -110,7 +111,7 @@ def handle_piece(sock, pieces, queue, torrent, file, piece_response):
 
     file.seek(offset)
     file.write(piece_response["block"])
-
+    print(pieces.get_progress(),"%")
     if pieces.is_done():
         sock.close()
         print("done!")

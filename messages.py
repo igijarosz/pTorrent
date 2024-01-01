@@ -42,7 +42,7 @@ def create_unchoke():
 
 def create_interested():
     buffer = bytearray()
-    print("interested")
+
     buffer.extend(0x1.to_bytes(4, "big"))
     buffer.extend(0x2.to_bytes(1, "big"))
 
