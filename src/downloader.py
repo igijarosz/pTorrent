@@ -13,6 +13,9 @@ def download_from_peers(torrent, peers):
 async def create_download_tasks(torrent, peers):
     pieces = piece.Piece(torrent)
 
+    if not os.path.exists("download"):
+        os.mkdir("download")
+        
     file = open(f"download/cos", "wb")
 
     tasks = []
