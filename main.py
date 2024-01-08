@@ -1,6 +1,4 @@
-import tracker
-import tparser
-import downloader
+from src import downloader, tparser, tracker
 
 torrent = tparser.open_file("debian 12.4.0 edu.torrent")
 
