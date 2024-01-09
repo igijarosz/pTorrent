@@ -1,3 +1,5 @@
+import math
+
 from src import tparser
 from src import idgen
 
@@ -42,7 +44,6 @@ def create_unchoke():
 
 def create_interested():
     buffer = bytearray()
-
     buffer.extend(0x1.to_bytes(4, "big"))
     buffer.extend(0x2.to_bytes(1, "big"))
 
@@ -68,12 +69,12 @@ def create_have(payload):
     return bytes(buffer)
 
 
-def create_bitfield(bitfield, payload):
+def create_bitfield(pieces):
     buffer = bytearray()
-
-    buffer.extend((len(payload) + 1).to_bytes(4, "big"))
+    buffer.extend((math.ceil(pieces.size / 8.0) + 1).to_bytes(4, "big"))
     buffer.extend(0x5.to_bytes(1, "big"))
-    buffer.extend(bitfield)
+    buffer.extend(pieces.create_bitfield().to_bytes(math.ceil(pieces.size / 8.0), "big"))
+
 
     return bytes(buffer)
 

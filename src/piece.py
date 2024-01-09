@@ -32,6 +32,16 @@ class Piece:
 
         return not self.requested[piece_block["index"]][block_index]
 
+    def create_bitfield(self):
+        received_flat = 0
+
+        for i, piece in enumerate(self.received):
+            if all(block for block in piece):
+                mask = 1 >> i
+                received_flat |= mask
+
+        return received_flat
+
     def get_progress(self):
         pieces_received = len(list(filter(lambda x: all(z for z in x), self.received)))
         return math.floor((pieces_received / self.size)*10000)/100

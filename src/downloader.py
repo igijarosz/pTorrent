@@ -5,7 +5,6 @@ from src import que
 from src import piece
 import asyncio
 import math
-from os import rename
 
 def download_from_peers(torrent, peers):
     asyncio.run(create_download_tasks(torrent, peers))
@@ -15,8 +14,7 @@ async def create_download_tasks(torrent, peers):
 
     if not os.path.exists("download"):
         os.mkdir("download")
-        
-    file = open(f"download/cos", "wb")
+    file = open(f"download/{str(torrent[b'info'][b'name'], 'utf-8')}", "wb")
 
     tasks = []
     for peer in peers:
@@ -27,6 +25,7 @@ async def create_download_tasks(torrent, peers):
 async def download_retry(torrent, peer, pieces, file):
     while True:    
         try:
+            print("retrying: ", peer)
             await download(torrent, peer, pieces, file)
             print(peer, "FIN")
             break
@@ -44,10 +43,17 @@ async def download(torrent, peer, pieces, file):
     message_buffer = bytearray()
     handshake = True
 
+    retry_counter = 0
+
     while True:
         data = await reader.read(2048)
         if not data or len(data) == 0:
             await asyncio.sleep(0.5)
+            retry_counter += 1
+
+            if retry_counter >= 10:
+                raise Exception("peer died")
+
             continue
 
         msg_len = 0
@@ -68,6 +74,8 @@ async def download(torrent, peer, pieces, file):
 
 async def handle_message(msg, sock, pieces, queue, torrent, file):
     if is_handshake(msg):
+        # sock.write(messages.create_bitfield(pieces))
+        # await sock.drain()
         sock.write(messages.create_interested())
         await sock.drain()
     else:
@@ -77,10 +85,14 @@ async def handle_message(msg, sock, pieces, queue, torrent, file):
             handle_choke(sock)
         if msg["id"] == 1:
             await handle_unchoke(sock, pieces, queue)
+        if msg["id"] == 2:
+            await handle_interested(sock)
         if msg["id"] == 4:
             await handle_have(msg["payload"], sock, pieces, queue)
         if msg["id"] == 5:
             await handle_bitfield(msg["payload"], sock, pieces, queue)
+        if msg["id"] == 6:
+            await handle_request()
         if msg["id"] == 7:
             await handle_piece(sock, pieces, queue, torrent, file, msg["payload"])
 
@@ -134,15 +146,23 @@ async def handle_piece(sock, pieces, queue, torrent, file, piece_response):
         sock.close()
         print("done!")
         file.close()
-        os.rename("download/cos", f"download/{torrent[b'name']}")
         exit()
     else:
         await request_piece(sock, pieces, queue)
 
 
+async def handle_interested(sock):
+    sock.write(messages.create_unchoke())
+    await sock.drain()
+
+
+async def handle_request():
+    return None
+
 async def request_piece(sock, pieces, queue):
     if queue.choked:
         return None
+
 
     while queue.length():
         piece_block = queue.deque()
