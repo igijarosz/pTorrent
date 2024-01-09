@@ -35,7 +35,7 @@ def get_peers_udp(url, torrent, callback):
         sock.sendall(create_connection_request())
 
         while True:  # pętla wysyłająca i odbierająca wiadomości od trackera
-            data = io.BytesIO(sock.recv(1024))
+            data = io.BytesIO(sock.recv(2048))
             resp_type = response_type(data)
             if resp_type == "connect":
                 connection_response = parse_connection_response(data)
