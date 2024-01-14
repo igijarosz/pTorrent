@@ -19,6 +19,11 @@ def size(torrent):
     size = torrent[b"info"][b"length"]
     return size.to_bytes(8, "big")
 
+def size_mb(torrent):
+    piece_length = torrent[b"info"][b"piece length"] / 1024
+    pieces = len(torrent[b"info"][b"pieces"]) / 1024
+    return piece_length * pieces / 20.0
+
 
 def piece_len(torrent, piece_index):
     total_length = torrent[b"info"][b"length"]

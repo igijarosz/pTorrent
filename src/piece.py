@@ -44,7 +44,7 @@ class Piece:
 
     def get_progress(self):
         pieces_received = len(list(filter(lambda x: all(z for z in x), self.received)))
-        return math.floor((pieces_received / self.size)*10000)/100
+        return pieces_received / self.size
 
     def is_done(self):
         return all(all(x for x in y) for y in self.received)

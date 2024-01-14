@@ -46,7 +46,6 @@ def get_peers_udp(url, torrent, callback):
                 callback(announce_response["peers"])
                 return
     except Exception as error:
-        print(error)
         pass
 
 
@@ -61,7 +60,6 @@ def get_peers_http(url, torrent, callback):
         callback(peers_list)
 
     except Exception as error:
-        print(error)
         pass
 
 

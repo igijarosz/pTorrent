@@ -1,16 +1,25 @@
 import os
-
 from src import messages
 from src import que
 from src import piece
+from src import tparser
 import asyncio
 import math
 
+global active_peers
+active_peers = {}
+
 def download_from_peers(torrent, peers):
+    for peer in peers:
+        active_peers[peer] = False
+
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(create_download_tasks(torrent, peers))
 
 async def create_download_tasks(torrent, peers):
     pieces = piece.Piece(torrent)
+
+    print_progress(pieces, torrent)
 
     if not os.path.exists("download"):
         os.mkdir("download")
@@ -25,9 +34,7 @@ async def create_download_tasks(torrent, peers):
 async def download_retry(torrent, peer, pieces, file):
     while True:    
         try:
-            print("retrying: ", peer)
             await download(torrent, peer, pieces, file)
-            print(peer, "FIN")
             break
         except Exception as error:
             pass
@@ -55,11 +62,12 @@ async def download(torrent, peer, pieces, file):
             retry_counter += 1
 
             if retry_counter >= 10:
+                active_peers[peer] = False
                 raise Exception("peer died")
 
             continue
 
-        msg_len = 0
+        active_peers[peer] = True
 
         message_buffer.extend(data)
 
@@ -144,10 +152,10 @@ async def handle_piece(sock, pieces, queue, torrent, file, piece_response):
 
     file.seek(offset)
     file.write(piece_response["block"])
-    print(pieces.get_progress(),"%")
+    print_progress(pieces, torrent)
     if pieces.is_done():
         sock.close()
-        print("done!")
+        # print("done!")
         file.close()
 
         for task in asyncio.all_tasks():
@@ -159,13 +167,11 @@ async def handle_piece(sock, pieces, queue, torrent, file, piece_response):
 
 
 async def handle_interested(sock):
-    print(sock[0], "is interested")
     sock.write(messages.create_unchoke())
     await sock.drain()
 
 
 async def handle_request(sock, pieces, queue):
-    print(sock[0], " requests data")
     return None
 
 async def request_piece(sock, pieces, queue):
@@ -181,3 +187,37 @@ async def request_piece(sock, pieces, queue):
             await sock.drain()
             pieces.add_requested(piece_block)
             break
+
+
+def print_progress(pieces, torrent):
+    os.system("cls" if os.name == "nt" else "clear")
+
+    progress = pieces.get_progress()
+    percentage = "{:.2f}".format(progress * 100)
+    size_mb = "{:.2f}".format(tparser.size_mb(torrent) * progress)
+    bar = []
+    flag = True
+    peers = len([x for x in active_peers if active_peers[x]])
+
+    for i in range(1, 11):
+        fraction = i / 10 / max(progress, 0.01)
+        if progress > i / 10:
+            bar.append("█")
+            flag = True
+        elif fraction > 0.66 and flag:
+            bar.append("▓")
+            flag = False
+        elif fraction > 0.33 and flag:
+            bar.append("▒")
+            flag = False
+        elif flag:
+            bar.append("░")
+            flag = False
+        else:
+            bar.append(" ")
+    bar = "".join(bar)
+
+    print(f"pTorrent 0.0.1")
+    print(f"Downloading from {peers} peers...")
+    print(f"[{bar}] {percentage}% ({size_mb} MiB)")
+
