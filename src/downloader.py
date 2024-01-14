@@ -36,6 +36,9 @@ async def download_retry(torrent, peer, pieces, file):
 async def download(torrent, peer, pieces, file):
     queue = que.Queue(torrent)
 
+    if peer[1] == 0:
+        return
+
     reader, writer = await asyncio.open_connection(peer[0], peer[1])
     writer.write(messages.create_handshake(torrent))
     await writer.drain()
@@ -74,8 +77,8 @@ async def download(torrent, peer, pieces, file):
 
 async def handle_message(msg, sock, pieces, queue, torrent, file):
     if is_handshake(msg):
-        # sock.write(messages.create_bitfield(pieces))
-        # await sock.drain()
+        sock.write(messages.create_bitfield(pieces))
+        await sock.drain()
         sock.write(messages.create_interested())
         await sock.drain()
     else:
@@ -92,7 +95,7 @@ async def handle_message(msg, sock, pieces, queue, torrent, file):
         if msg["id"] == 5:
             await handle_bitfield(msg["payload"], sock, pieces, queue)
         if msg["id"] == 6:
-            await handle_request()
+            await handle_request(sock, pieces, queue)
         if msg["id"] == 7:
             await handle_piece(sock, pieces, queue, torrent, file, msg["payload"])
 
@@ -146,17 +149,23 @@ async def handle_piece(sock, pieces, queue, torrent, file, piece_response):
         sock.close()
         print("done!")
         file.close()
+
+        for task in asyncio.all_tasks():
+            task.cancel()
+
         exit()
     else:
         await request_piece(sock, pieces, queue)
 
 
 async def handle_interested(sock):
+    print(sock[0], "is interested")
     sock.write(messages.create_unchoke())
     await sock.drain()
 
 
-async def handle_request():
+async def handle_request(sock, pieces, queue):
+    print(sock[0], " requests data")
     return None
 
 async def request_piece(sock, pieces, queue):

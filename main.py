@@ -1,5 +1,8 @@
+import sys
 from src import downloader, tparser, tracker
 
-torrent = tparser.open_file("debian 12.4.0 edu.torrent")
+sys.tracebacklimit = 0
+
+torrent = tparser.open_file("magaos.torrent")
 
 tracker.get_peers(torrent, lambda peers: downloader.download_from_peers(torrent, peers))
